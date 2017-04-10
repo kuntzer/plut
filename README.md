@@ -2,7 +2,7 @@
 
 # Requirements:
 
-You need to install [http://astropy.readthedocs.io](Astropy) and [https://github.com/mtewes/tenbilac](Tenbilac)
+You need to install [Astropy](http://astropy.readthedocs.io) and [Tenbilac](https://github.com/mtewes/tenbilac)
 
 # To run:
 
