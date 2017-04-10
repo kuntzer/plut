@@ -24,15 +24,18 @@ do_predict = True
 
 tenbilacconfigname = "sum55.cfg"
 
+train_dataset = "train"
+train_snr = "no"
+
 test_dataset = "test"
 test_snr = "no"
 
-show = False
+show = True
 
 ###################################################################################################
 # Initialisation: loading the files
 
-training_data = plut.utils.load_encodings(workdir, "train", "no")
+training_data = plut.utils.load_encodings(workdir, train_dataset, train_snr)
 
 assert np.size(np.unique(training_data[:,5])) == np.shape(training_data)[0]
 assert np.size(np.unique(training_data[:,6])) == np.shape(training_data)[0]
@@ -55,7 +58,7 @@ if show:
 	plt.tight_layout(h_pad=0.1)
 	plt.show()
 
-train_truth_data = plut.utils.load_truth_cats("train")
+train_truth_data = plut.utils.load_truth_cats(train_dataset)
 
 joined_cats = plut.utils.merge_code_truth_cats(training_data, train_truth_data)
 
@@ -86,7 +89,7 @@ if show:
 inputlabels = names_components
 
 for name in ["g1", "g2", "fwhm"]:
-	trainworkdir = os.path.join(workdir, "fit", name)
+	trainworkdir = os.path.join(workdir, "fit", "{}_{}".format(train_dataset, train_snr), name)
 	tblconfiglist = [("setup", "workdir", trainworkdir), ("setup", "name", confname)]
 	
 	ten = tenbilac.com.Tenbilac(os.path.join(workdir, "configs", tenbilacconfigname), tblconfiglist)
@@ -105,6 +108,7 @@ for name in ["g1", "g2", "fwhm"]:
 
 	if show:
 		print "Components are fitted for {}. Moving on.".format(name)
+		plt.figure()
 		plt.scatter(joined_cats[name], joined_cats['meas_{}'.format(name)]-joined_cats[name])
 		plt.show()
 
@@ -114,7 +118,7 @@ for name in ["g1", "g2", "fwhm"]:
 if do_predict:
 	for name in ["g1", "g2", "fwhm"]:
 		predlabels = ["meas_{}".format(name)]
-		trainworkdir = os.path.join(workdir, "fit", name)
+		trainworkdir = os.path.join(workdir, "fit", "{}_{}".format(train_dataset, train_snr), name)
 		tblconfiglist = [("setup", "workdir", trainworkdir), ("setup", "name", confname)]
 		
 		ten = tenbilac.com.Tenbilac(os.path.join(workdir, "configs", tenbilacconfigname), tblconfiglist)
@@ -123,9 +127,9 @@ if do_predict:
 		test_joined_cats["delta_{}".format(name)] = test_joined_cats["meas_{}".format(name)] - test_joined_cats["{}".format(name)] 
 
 	test_joined_cats["delta_fwhm"] /= np.mean(test_joined_cats["fwhm"])		
-	test_joined_cats.write(os.path.join(workdir, "fit", "valpredcat.fits"), overwrite=True)
+	test_joined_cats.write(os.path.join(workdir, "fit", "{}_{}".format(train_dataset, train_snr), "valpredcat.fits"), overwrite=True)
 else:
-	test_joined_cats = Table.read(os.path.join(workdir, "fit", "valpredcat.fits"))
+	test_joined_cats = Table.read(os.path.join(workdir, "fit", "{}_{}".format(train_dataset, train_snr), "valpredcat.fits"))
 
 ###################################################################################################
 # Evaluate the Q metrics
