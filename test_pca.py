@@ -28,9 +28,9 @@ train_dataset = "train"
 train_snr = "no"
 
 test_dataset = "test"
-test_snr = "no"
+test_snr = train_snr
 
-show = True
+show = False
 
 ###################################################################################################
 # Initialisation: loading the files
