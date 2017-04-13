@@ -62,16 +62,21 @@ def load_truth_cats(dataset):
 			
 	return truth_data
 
-def load_encodings(workdir, dataset, snr):
+def load_encodings(workdir, dataset, snr, calib=False):
 	
 	if dataset == "train":
 		nds = 5
 	elif dataset == "test":
 		nds = 10
 	
+	if calib:
+		note = "_calib"
+	else:
+		note = ""
+	
 	data = None
 	for ii in range(nds):
-		data_tmp = readpickle(os.path.join(workdir, "inputs", "snr_{}_{}_{:03}.pkl".format(snr, dataset, ii)))
+		data_tmp = readpickle(os.path.join(workdir, "inputs", "snr_{}_{}{}_{:03}.pkl".format(snr, dataset, note, ii)))
 		if data is None:
 			data = data_tmp 
 		else:

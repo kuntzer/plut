@@ -18,8 +18,8 @@ workdir = "PCA"
 
 n_components = 8
 
-do_train = True		
-do_self_predict = True
+do_train = False		
+do_self_predict = False
 do_predict = True
 
 tenbilacconfigname = "sum55.cfg"
@@ -69,6 +69,11 @@ print test_data.shape
 test_data = Table(test_data, names=names_cols)
 test_truth = plut.utils.load_truth_cats(test_dataset)
 test_joined_cats = plut.utils.merge_code_truth_cats(test_data, test_truth)
+
+
+test_calib_data = plut.utils.load_encodings(workdir, test_dataset, test_snr, calib=True)
+test_calib_data = Table(test_calib_data, names=names_cols)
+test_calib_joined_cats = plut.utils.merge_code_truth_cats(test_calib_data, test_truth)
 
 #--------------------------------------------------------------------------------------------------
 toolconfpath = os.path.join(workdir, "configs", tenbilacconfigname)
@@ -124,15 +129,24 @@ if do_predict:
 		ten = tenbilac.com.Tenbilac(os.path.join(workdir, "configs", tenbilacconfigname), tblconfiglist)
 		test_joined_cats = plut.ml.predict(ten, test_joined_cats, inputlabels, predlabels)
 		
-		test_joined_cats["delta_{}".format(name)] = test_joined_cats["meas_{}".format(name)] - test_joined_cats["{}".format(name)] 
+		test_joined_cats["delta_{}".format(name)] = test_joined_cats["meas_{}".format(name)] - test_joined_cats["{}".format(name)]
+		
+		test_calib_joined_cats = plut.ml.predict(ten, test_calib_joined_cats, inputlabels, predlabels)
+		
+		test_calib_joined_cats["delta_{}".format(name)] = test_calib_joined_cats["meas_{}".format(name)] - test_calib_joined_cats["{}".format(name)]  
 
 	test_joined_cats["delta_fwhm"] /= np.mean(test_joined_cats["fwhm"])		
 	test_joined_cats.write(os.path.join(workdir, "fit", "{}_{}".format(train_dataset, train_snr), "valpredcat.fits"), overwrite=True)
+	
+	test_calib_joined_cats["delta_fwhm"] /= np.mean(test_calib_joined_cats["fwhm"])		
+	test_calib_joined_cats.write(os.path.join(workdir, "fit", "{}_{}".format(train_dataset, train_snr), "valpredcat_calib.fits"), overwrite=True)
 else:
 	test_joined_cats = Table.read(os.path.join(workdir, "fit", "{}_{}".format(train_dataset, train_snr), "valpredcat.fits"))
+	test_calib_joined_cats = Table.read(os.path.join(workdir, "fit", "{}_{}".format(train_dataset, train_snr), "valpredcat_calib.fits"))
 
 ###################################################################################################
 # Evaluate the Q metrics
 
-print plut.metrics.get_Q(test_joined_cats["delta_g1"], test_joined_cats["delta_g2"], test_joined_cats["delta_fwhm"])
+print "Compression: {:4.1f}".format( plut.metrics.get_Q(test_calib_joined_cats["delta_g1"], test_calib_joined_cats["delta_g2"], test_calib_joined_cats["delta_fwhm"]))
+print "Compression+Interpolation: {:4.1f}".format( plut.metrics.get_Q(test_joined_cats["delta_g1"], test_joined_cats["delta_g2"], test_joined_cats["delta_fwhm"]))
 	
