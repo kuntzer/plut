@@ -5,6 +5,7 @@ from astropy.table import Table
 import astropy.table
 import pylab as plt
 
+
 import plut 
 
 import logging
@@ -25,10 +26,10 @@ do_predict = True
 tenbilacconfigname = "sum55.cfg"
 
 train_dataset = "train"
-train_snr = "no"
+train_snr = "20"
 
 test_dataset = "test"
-test_snr = train_snr
+test_snr = "100"#train_snr
 
 show = False
 
@@ -147,6 +148,16 @@ else:
 ###################################################################################################
 # Evaluate the Q metrics
 
-print "Compression: {:4.1f}".format( plut.metrics.get_Q(test_calib_joined_cats["delta_g1"], test_calib_joined_cats["delta_g2"], test_calib_joined_cats["delta_fwhm"]))
-print "Compression+Interpolation: {:4.1f}".format( plut.metrics.get_Q(test_joined_cats["delta_g1"], test_joined_cats["delta_g2"], test_joined_cats["delta_fwhm"]))
+print "std de1: %1.2e" % np.std(test_calib_joined_cats["delta_g1"]), "rel: %1.2e" %  (np.std(test_calib_joined_cats["delta_g1"]) / 2e-4)
+print "std de2: %1.2e" % np.std(test_calib_joined_cats["delta_g2"]), "rel: %1.2e" %  (np.std(test_calib_joined_cats["delta_g2"]) / 2e-4)
+print "std dFWHM/FWHM0: %1.2e" % np.std(test_calib_joined_cats["delta_fwhm"]), "rel: %1.2e" % (np.std(test_calib_joined_cats["delta_fwhm"]) / 1e-3)
+print "Q Compression: {:4.1f}".format( plut.metrics.get_Q(test_calib_joined_cats["delta_g1"], test_calib_joined_cats["delta_g2"], test_calib_joined_cats["delta_fwhm"]))
+master_Q = plut.metrics.get_Q(test_joined_cats["delta_g1"], test_joined_cats["delta_g2"], test_joined_cats["delta_fwhm"])
+print "Q Compression+Interpolation: {:4.1f}".format(master_Q)
 	
+	
+###################################################################################################
+# Compute conditional metrics 
+
+cats = [test_joined_cats, test_calib_joined_cats]
+plut.plots.make_condbias_plot(cats, names_components, workdir, train_snr, test_snr, show)

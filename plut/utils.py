@@ -3,6 +3,7 @@ import gzip
 import os
 from astropy.table import Table, vstack, join
 import numpy as np
+import copy
 
 def writepickle(obj, filepath, protocol = -1):
 	"""
@@ -94,4 +95,7 @@ def merge_code_truth_cats(code, truth):
 	#training_data.sort(["xfield", "yfield"])
 	
 	return join(code, truth, keys=['xfield', 'yfield'])
+
+
+
 
