@@ -2,9 +2,9 @@ import os
 import numpy as np
 import tenbilac
 from astropy.table import Table
-import astropy.table
+import astropy.stats
 import pylab as plt
-
+import scipy.interpolate as interp
 
 import plut 
 
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 ###################################################################################################
 # Variables 
 
-workdir = "PCA"
+workdir = "AE8"
 
 n_components = 8
 
@@ -29,17 +29,17 @@ train_dataset = "train"
 train_snr = "no"
 
 test_dataset = "test"
-test_snr = "no"#train_snr
+test_snr = "20"
 
 show = True
 
 ###################################################################################################
 # Initialisation: loading the files
 
-training_data = plut.utils.load_encodings(workdir, train_dataset, train_snr)
-
-assert np.size(np.unique(training_data[:,5])) == np.shape(training_data)[0]
-assert np.size(np.unique(training_data[:,6])) == np.shape(training_data)[0]
+training_data = plut.utils.load_encodings_ae8(workdir, train_dataset, train_snr, train_snr, calib=True)
+print np.size(np.unique(training_data[:,0])), np.shape(training_data)[0]
+#assert np.size(np.unique(training_data[:,5])) == np.shape(training_data)[0]
+#assert np.size(np.unique(training_data[:,6])) == np.shape(training_data)[0]
 
 names_components = ["component_{:02d}".format(ii) for ii in range(n_components)] 
 names_cols = ["xfield", "yfield"] + names_components
@@ -55,27 +55,67 @@ if show:
 		hh = training_data["component_{:02}".format(n)]
 		cs = ax.scatter(training_data["xfield"], training_data["yfield"], c=hh, edgecolor="None")
 		plt.colorbar(cs)
-		ax.set_title("PCA - Component {}".format(n+1))
+		ax.set_title("AE8 - Component {}".format(n+1))
 	plt.tight_layout(h_pad=0.1)
-	plt.show()
+	
 
+if show:
+	plt.figure(figsize=(16, 6))
+
+	for n in range(n_components):
+		ax = plt.subplot(2, 4, n+1)
+		
+		#hh = training_data["component_{:02}".format(n)]
+		if train_snr == "no":
+			hh = training_data["component_{:02}".format(n)]
+		else:
+			tdd = astropy.stats.sigma_clip(training_data["component_{:02}".format(n)])
+			iii = interp.SmoothBivariateSpline(training_data["xfield"], training_data["yfield"], tdd, kx=5, ky=5)
+			hh = iii.ev(training_data["xfield"], training_data["yfield"])
+		#training_data["component_{:02}".format(n)] = hh
+		cs = ax.scatter(training_data["xfield"], training_data["yfield"], c=hh, edgecolor="None")
+		plt.colorbar(cs)
+		ax.set_title("AE8 - Component {}".format(n+1))
+		training_data["component_{:02}".format(n)] = hh
+	plt.tight_layout(h_pad=0.1)
+	
 train_truth_data = plut.utils.load_truth_cats(train_dataset)
-
 joined_cats = plut.utils.merge_code_truth_cats(training_data, train_truth_data)
 
 #--------------------------------------------------------------------------------------------------
 
-test_data = plut.utils.load_encodings(workdir, test_dataset, test_snr)
+test_data = plut.utils.load_encodings_ae8(workdir, test_dataset, train_snr, test_snr, calib=False)
 print test_data.shape
 test_data = Table(test_data, names=names_cols)
 test_truth = plut.utils.load_truth_cats(test_dataset)
 test_joined_cats = plut.utils.merge_code_truth_cats(test_data, test_truth)
 
+if show:
+	plt.figure(figsize=(16, 6))
 
-test_calib_data = plut.utils.load_encodings(workdir, test_dataset, test_snr, calib=True)
+	for n in range(n_components):
+		ax = plt.subplot(2, 4, n+1)
+		hh = test_data["component_{:02}".format(n)]
+		cs = ax.scatter(test_data["xfield"], test_data["yfield"], c=hh, edgecolor="None")
+		plt.colorbar(cs)
+		ax.set_title("AE8 - Component {}".format(n+1))
+	plt.tight_layout(h_pad=0.1)
+
+test_calib_data = plut.utils.load_encodings_ae8(workdir, test_dataset, train_snr, test_snr, calib=True)
 test_calib_data = Table(test_calib_data, names=names_cols)
 test_calib_joined_cats = plut.utils.merge_code_truth_cats(test_calib_data, test_truth)
 
+if show:
+	plt.figure(figsize=(16, 6))
+
+	for n in range(n_components):
+		ax = plt.subplot(2, 4, n+1)
+		hh = test_calib_data["component_{:02}".format(n)]
+		cs = ax.scatter(test_calib_data["xfield"], test_calib_data["yfield"], c=hh, edgecolor="None")
+		plt.colorbar(cs)
+		ax.set_title("AE8 - Component {}".format(n+1))
+	plt.tight_layout(h_pad=0.1)
+	plt.show()
 #--------------------------------------------------------------------------------------------------
 toolconfpath = os.path.join(workdir, "configs", tenbilacconfigname)
 toolconfig = plut.ml.readconfig(toolconfpath) # The Tenbilac config
@@ -148,13 +188,22 @@ else:
 ###################################################################################################
 # Evaluate the Q metrics
 
-print "std de1: %1.2e" % np.std(test_joined_cats["delta_g1"]), "rel: %1.2e" %  (np.std(test_joined_cats["delta_g1"]) / 2e-4)
-print "std de2: %1.2e" % np.std(test_joined_cats["delta_g2"]), "rel: %1.2e" %  (np.std(test_joined_cats["delta_g2"]) / 2e-4)
-print "std dFWHM/FWHM0: %1.2e" % np.std(test_joined_cats["delta_fwhm"]), "rel: %1.2e" % (np.std(test_joined_cats["delta_fwhm"]) / 1e-3)
+
+mag1 = astropy.stats.sigma_clip(test_joined_cats["delta_g1"])
+mag2 = astropy.stats.sigma_clip(test_joined_cats["delta_g2"])
+maR = astropy.stats.sigma_clip(test_joined_cats["delta_fwhm"])
+plt.figure()
+plt.hist( test_joined_cats["delta_g2"])
+plt.show()
+
+print "std de1: %1.2e" % np.std(mag1), "rel: %1.2e" %  (np.std(mag1) / 2e-4)
+print "std de2: %1.2e" % np.std(mag2), "rel: %1.2e" %  (np.std(mag2) / 2e-4)
+print "std dFWHM/FWHM0: %1.2e" % np.std(maR), "rel: %1.2e" % (np.std(maR) / 1e-3)
 print "Q Compression: {:4.1f}".format( plut.metrics.get_Q(test_calib_joined_cats["delta_g1"], test_calib_joined_cats["delta_g2"], test_calib_joined_cats["delta_fwhm"]))
-master_Q = plut.metrics.get_Q(test_joined_cats["delta_g1"], test_joined_cats["delta_g2"], test_joined_cats["delta_fwhm"])
+master_Q = plut.metrics.get_Q(mag1, mag2, maR)
 print "Q Compression+Interpolation: {:4.1f}".format(master_Q)
-	
+
+exit()
 	
 ###################################################################################################
 # Compute conditional metrics 

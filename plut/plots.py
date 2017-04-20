@@ -5,7 +5,7 @@ import matplotlib.ticker as ticker
 
 import metrics, figures, table
 
-def make_condbias_plot(cats, names_components, workdir, train_snr, test_snr, ncbins=10, show=True):
+def make_condbias_plot(cats, names_components, workdir, train_snr, test_snr, ncbins=5, show=True):
 	
 	param_feats_field = [
 			"g1", "g2", "fwhm", "xfield", "yfield"]

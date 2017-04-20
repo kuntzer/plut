@@ -7,7 +7,7 @@ def get_Q(error_ell1, error_ell2, error_size, target_error_ell=2e-4, target_erro
 	
 	Qden = (error_ell1 / target_error_ell)**2 + (error_ell2 / target_error_ell)**2 + (error_size / target_error_size)**2
 	if avg:
-		Qden = np.mean(Qden)
+		Qden = np.ma.mean(Qden)
 	
 	Qden += sigmamin * sigmamin
 	
@@ -19,6 +19,16 @@ if __name__ == "__main__":
 	import matplotlib.pyplot as plt
 	import matplotlib
 	import figures
+	
+	white = True
+	
+	if white:
+		import matplotlib.font_manager as fm
+		from matplotlib import rc
+		prop = fm.FontProperties(fname='/usr/share/texmf/fonts/opentype/public/tex-gyre/texgyreadventor-regular.otf')
+		rc('font', **{'family':'TeX Gyre Adventor','size':14})
+		matplotlib.rcParams.update({'text.color': 'white', 'ytick.color':'white', 'xtick.color':'white',
+								'axes.labelcolor':'white'})
 	
 	matplotlib.rcParams['xtick.direction'] = 'out'
 	matplotlib.rcParams['ytick.direction'] = 'out'
@@ -33,6 +43,12 @@ if __name__ == "__main__":
 	score = get_Q(X, X, Y, avg=False)
 
 	fig = plt.figure()
+	ax = plt.subplot(111)
+	if white:
+		ax.spines['bottom'].set_color('white')
+		ax.spines['top'].set_color('white') 
+		ax.spines['right'].set_color('white')
+		ax.spines['left'].set_color('white')
 	cs = plt.contourf(X, Y, score, 20, cmap=plt.get_cmap("PuBu_r"), vmin=0, vmax=2000)
 	cbar = fig.colorbar(cs)
 	
